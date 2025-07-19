@@ -1,0 +1,56 @@
+services:
+  nginx:
+    build:
+      context: docker/nginx
+      dockerfile: Dockerfile
+    ports:
+      - "80:8080"
+    volumes:
+      - .:/var/www
+    networks:
+      - app-network
+    depends_on:
+      - app
+      # - memcached
+
+  app:
+    build:
+      context: .
+      dockerfile: docker/fpm/Dockerfile
+    volumes:
+      - .:/var/www
+      - logs:/var/www/logs
+    networks:
+      - app-network
+    # depends_on:
+    #   - memcached
+        
+  db:
+    image: postgres:latest
+    restart: always
+    container_name: postgres
+    environment:
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_DATABASE}
+    ports:
+      - 6432:${DB_PORT}
+    networks:
+      - app-network
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    env_file: .env
+
+  # memcached:
+  #   image: memcached
+  #   container_name: memcached 
+  #   networks:
+  #     - app-network 
+
+volumes:
+  db_data:
+  logs:
+
+networks:
+  app-network:
+    driver: bridge

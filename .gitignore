@@ -1,0 +1,6 @@
+/vendor/
+/.idea/
+/config/env/env.php
+/logs/
+/var/cache/*
+.env
