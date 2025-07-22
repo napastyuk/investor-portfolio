@@ -19,5 +19,11 @@ $containerBuilder = new ContainerBuilder();
 // Add container definitions and build DI container
 $container = $containerBuilder->addDefinitions(__DIR__ . '/container.php')->build();
 
+$logFile = __DIR__ . '/../logs/app.log';
+if (!file_exists($logFile)) {
+    touch($logFile);
+    chmod($logFile, 0777); // или chown, если нужно
+}
+
 // Create app instance
 return $container->get(App::class);

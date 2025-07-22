@@ -1,11 +1,12 @@
 <?php
 
-// Slim middlewares are LIFO (last in, first out) so when responding, the order is backwards
-// https://samuel-gfeller.ch/docs/Slim-Middlewares#order-of-execution
+use App\Application\Middleware\LoggingMiddleware;
+
 return function (Slim\App $app) {
+    $container = $app->getContainer();
+
     $app->addBodyParsingMiddleware();
-
-    // Add new middlewares here
-
     $app->addRoutingMiddleware();
+
+    $app->add($container->get(LoggingMiddleware::class)); // добавляем логирование
 };

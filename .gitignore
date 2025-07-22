@@ -1,6 +1,6 @@
 /vendor/
 /.idea/
 /config/env/env.php
-/logs/
+/logs/*
 /var/cache/*
 .env

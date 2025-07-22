@@ -13,6 +13,13 @@ use Slim\App;
 use Slim\Factory\AppFactory;
 use App\Infrastructure\Okx\OkxClient;
 use Predis\Client as RedisClient;
+use Monolog\Level;
+use Monolog\Logger;
+use Monolog\Handler\StreamHandler;
+use Psr\Log\LoggerInterface;
+use App\Application\Responder\JsonResponder;
+use App\Application\Handler\NotFoundHandler;
+use App\Application\Middleware\LoggingMiddleware;
 
 return [
     'settings' => function () {
@@ -27,6 +34,16 @@ return [
 
         // Register middlewares
         (require __DIR__ . '/middleware.php')($app);
+
+        $callableResolver = $app->getCallableResolver();
+        $responseFactory = $app->getResponseFactory();
+
+        // Устанавливаем NotFoundHandler
+        $errorMiddleware = $app->addErrorMiddleware(true, true, true);
+        $errorMiddleware->setErrorHandler(
+            \Slim\Exception\HttpNotFoundException::class,
+            $container->get(NotFoundHandler::class)
+        );
 
         return $app;
     },
@@ -58,7 +75,7 @@ return [
     \GuzzleHttp\Client::class => fn() => new \GuzzleHttp\Client(),
 
     RedisClient::class => fn () => new RedisClient(['scheme' => 'tcp', 'host' => 'redis', 'port' => 6379]),
-    
+
     OkxClient::class => function (ContainerInterface $c) {
         return new OkxClient(
             new \GuzzleHttp\Client(),
@@ -68,4 +85,20 @@ return [
             $_ENV['OKX_PASSPHRASE']
         );
     },
+
+    LoggerInterface::class => function () {
+        $logger = new Logger('app');
+        $logger->pushHandler(new StreamHandler(__DIR__ . '/../var/log/app.log'));
+        return $logger;
+    },
+
+    JsonResponder::class => fn() => new JsonResponder(),
+
+    LoggingMiddleware::class => fn(ContainerInterface $c) => new LoggingMiddleware(
+        $c->get(LoggerInterface::class)
+    ),
+
+    NotFoundHandler::class => fn(ContainerInterface $c) => new NotFoundHandler(
+        $c->get(LoggerInterface::class)
+    )
 ];

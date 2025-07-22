@@ -6,12 +6,14 @@ use App\Infrastructure\Okx\OkxClient;
 use PDO;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
+use Psr\Log\LoggerInterface;
 
 readonly class BalanceController
 {
     public function __construct(
         private OkxClient $client,
-        private PDO $pdo
+        private PDO $pdo,
+        private LoggerInterface $logger
     ) {}
 
     public function import(ServerRequestInterface $request, ResponseInterface $response): ResponseInterface
@@ -28,6 +30,7 @@ readonly class BalanceController
             ]);
         }
 
+        $this->logger->info("inserted ".count($balances));
         $response->getBody()->write(json_encode(['inserted' => count($balances)], JSON_UNESCAPED_UNICODE));
         return $response->withHeader('Content-Type', 'application/json');
     }
