@@ -41,11 +41,12 @@ services:
       - db_data:/var/lib/postgresql/data
     env_file: .env
 
-  # memcached:
-  #   image: memcached
-  #   container_name: memcached 
-  #   networks:
-  #     - app-network 
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    networks:
+      - app-network
 
 volumes:
   db_data:

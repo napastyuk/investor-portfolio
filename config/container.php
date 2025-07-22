@@ -11,6 +11,8 @@ use Psr\Http\Message\ResponseFactoryInterface;
 use Psr\Http\Message\ServerRequestFactoryInterface;
 use Slim\App;
 use Slim\Factory\AppFactory;
+use App\Infrastructure\Okx\OkxClient;
+use Predis\Client as RedisClient;
 
 return [
     'settings' => function () {
@@ -54,4 +56,16 @@ return [
     },
 
     \GuzzleHttp\Client::class => fn() => new \GuzzleHttp\Client(),
+
+    RedisClient::class => fn () => new RedisClient(['scheme' => 'tcp', 'host' => 'redis', 'port' => 6379]),
+    
+    OkxClient::class => function (ContainerInterface $c) {
+        return new OkxClient(
+            new \GuzzleHttp\Client(),
+            $c->get(RedisClient::class),
+            $_ENV['OKX_API_KEY'],
+            $_ENV['OKX_SECRET_KEY'],
+            $_ENV['OKX_PASSPHRASE']
+        );
+    },
 ];

@@ -22,3 +22,12 @@
 > 2.1 Выгрузка из API криптобиржи истории транзакций в Postgress. По timastamp последней транзакции в базе смотрим за какой период догрузить транзакции.
 
 Тут будет интересная задача - обеспечить отсутствие задваивания данных
+
+
+CREATE TABLE wallet_balances (
+    id SERIAL PRIMARY KEY,
+    ccy VARCHAR(16) NOT NULL,
+    eq NUMERIC(36, 18) NOT NULL,
+    eq_usd NUMERIC(36, 2) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
