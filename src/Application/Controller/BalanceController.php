@@ -20,18 +20,36 @@ readonly class BalanceController
     {
         $balances = $this->client->getBalances();
 
-        $stmt = $this->pdo->prepare('INSERT INTO wallet_balances (ccy, eq, eq_usd) VALUES (:ccy, :eq, :eq_usd)');
+        $stmt = $this->pdo->prepare(
+            'INSERT INTO wallet_balances (ccy, eq, eq_usd, rate)
+            VALUES (:ccy, :eq, :eq_usd, :rate)
+            ON CONFLICT (ccy) DO UPDATE
+            SET eq = EXCLUDED.eq,
+                eq_usd = EXCLUDED.eq_usd,
+                rate = EXCLUDED.rate,
+                created_at = CURRENT_TIMESTAMP'
+        );
+
+        $inserted = 0;
 
         foreach ($balances as $item) {
+            $eq = (float)$item['eq'];
+            $eqUsd = (float)$item['eqUsd'];
+            $rate = $eq > 0 ? $eqUsd / $eq : null;
+
             $stmt->execute([
-                ':ccy' => $item['ccy'],
-                ':eq' => $item['eq'],
-                ':eq_usd' => $item['eqUsd'],
+                'ccy' => $item['ccy'],
+                'eq' => $eq,
+                'eq_usd' => $eqUsd,
+                'rate' => $rate,
             ]);
+
+            $inserted++;
         }
 
-        $this->logger->info("inserted ".count($balances));
-        $response->getBody()->write(json_encode(['inserted' => count($balances)], JSON_UNESCAPED_UNICODE));
+        $this->logger->info("inserted {$inserted}");
+
+        $response->getBody()->write(json_encode(['inserted' => $inserted], JSON_UNESCAPED_UNICODE));
         return $response->withHeader('Content-Type', 'application/json');
     }
 
