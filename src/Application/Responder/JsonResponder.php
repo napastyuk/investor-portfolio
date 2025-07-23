@@ -8,12 +8,6 @@ final readonly class JsonResponder
 {
     /**
      * Write JSON to the response body.
-     *
-     * @param ResponseInterface $response The response
-     * @param mixed $data The data
-     * @param int $status
-     *
-     * @return ResponseInterface The response
      */
     public function encodeAndAddToResponse(
         ResponseInterface $response,

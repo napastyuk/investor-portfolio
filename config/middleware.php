@@ -8,5 +8,6 @@ return function (Slim\App $app) {
     $app->addBodyParsingMiddleware();
     $app->addRoutingMiddleware();
 
-    $app->add($container->get(LoggingMiddleware::class)); // добавляем логирование
+    // добавляем логирование
+    $app->add($container->get(LoggingMiddleware::class)); 
 };

@@ -1,8 +1,6 @@
 <?php
 /**
  * Dependency Injection container configuration.
- *
- * Documentation: https://samuel-gfeller.ch/docs/Dependency-Injection.
  */
 
 use Nyholm\Psr7\Factory\Psr17Factory;
@@ -13,7 +11,6 @@ use Slim\App;
 use Slim\Factory\AppFactory;
 use App\Infrastructure\Okx\OkxClient;
 use Predis\Client as RedisClient;
-use Monolog\Level;
 use Monolog\Logger;
 use Monolog\Handler\StreamHandler;
 use Psr\Log\LoggerInterface;
@@ -87,8 +84,13 @@ return [
     },
 
     LoggerInterface::class => function () {
+        $logFile = __DIR__ . '/../logs/app.log';
+        if (!file_exists($logFile)) {
+            touch($logFile);
+            chmod($logFile, 0777);
+        }
         $logger = new Logger('app');
-        $logger->pushHandler(new StreamHandler(__DIR__ . '/../var/log/app.log'));
+        $logger->pushHandler(new StreamHandler($logFile)); 
         return $logger;
     },
 
