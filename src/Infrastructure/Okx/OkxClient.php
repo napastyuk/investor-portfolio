@@ -16,18 +16,16 @@ class OkxClient
         private Redis $redis,
         private string $apiKey,
         private string $secretKey,
-        private string $passphrase
+        private string $passphrase,
+        private \Psr\Log\LoggerInterface $logger
     ) {}
 
-    public function getBalances(): array
+    private function request(string $method, string $path, string $body = ''): array
     {
         $this->checkRateLimit();
 
-        $timestamp = (new DateTime('now', new \DateTimeZone('UTC')))->format('Y-m-d\TH:i:s.v\Z');
-        $method = 'GET';
-        $path = '/api/v5/account/balance';
-
-        $signature = $this->generateSignature($timestamp, $method, $path, '');
+        $timestamp = (new \DateTime('now', new \DateTimeZone('UTC')))->format('Y-m-d\TH:i:s.v\Z');
+        $signature = $this->generateSignature($timestamp, $method, $path, $body);
 
         $headers = [
             'OK-ACCESS-KEY' => $this->apiKey,
@@ -37,16 +35,55 @@ class OkxClient
             'Content-Type' => 'application/json',
         ];
 
-        $response = $this->http->request($method, self::BASE_URI . $path, [
-            'headers' => $headers,
-        ]);
+        $uri = self::BASE_URI . $path;
 
-        $data = json_decode($response->getBody()->getContents(), true);
-        if (!isset($data['code']) || $data['code'] !== '0') {
-            throw new Exception("OKX API Error: {$data['msg']}");
+        $start = microtime(true);
+
+        try {
+            $options = ['headers' => $headers];
+            if (!empty($body)) {
+                $options['body'] = $body;
+            }
+
+            $response = $this->http->request($method, $uri, $options);
+            $duration = round((microtime(true) - $start) * 1000, 2);
+
+            $responseBody = $response->getBody()->getContents();
+            $status = $response->getStatusCode();
+
+            $this->logger->info('OKX HTTP Request', [
+                'method' => $method,
+                'path' => $path,
+                'body' => $body,
+                'status' => $status,
+                'response' => json_decode($responseBody, true),
+                'duration_ms' => $duration
+            ]);
+
+            $decoded = json_decode($responseBody, true);
+
+            if (!isset($decoded['code']) || $decoded['code'] !== '0') {
+                throw new \RuntimeException("OKX API Error: {$decoded['msg']}");
+            }
+
+            return $decoded;
+        } catch (\Throwable $e) {
+            $this->logger->error('OKX Request failed', [
+                'method' => $method,
+                'path' => $path,
+                'body' => $body,
+                'status' => $status,
+                'error' => $e->getMessage(),
+                'duration_ms' => $duration
+            ]);
+            throw $e;
         }
+    }
 
-        return $data['data'][0]['details'] ?? [];
+    public function getBalances(): array
+    {
+        $response = $this->request('GET', '/api/v5/account/balance');
+        return $response['data'][0]['details'] ?? [];
     }
 
     private function generateSignature(string $timestamp, string $method, string $path, string $body): string

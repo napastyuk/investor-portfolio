@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Dependency Injection container configuration.
  */
@@ -13,10 +14,13 @@ use App\Infrastructure\Okx\OkxClient;
 use Predis\Client as RedisClient;
 use Monolog\Logger;
 use Monolog\Handler\StreamHandler;
+use Monolog\Handler\RotatingFileHandler;
+use Monolog\Formatter\JsonFormatter;
 use Psr\Log\LoggerInterface;
 use App\Application\Responder\JsonResponder;
 use App\Application\Handler\NotFoundHandler;
 use App\Application\Middleware\LoggingMiddleware;
+
 
 return [
     'settings' => function () {
@@ -71,7 +75,7 @@ return [
 
     \GuzzleHttp\Client::class => fn() => new \GuzzleHttp\Client(),
 
-    RedisClient::class => fn () => new RedisClient(['scheme' => 'tcp', 'host' => 'redis', 'port' => 6379]),
+    RedisClient::class => fn() => new RedisClient(['scheme' => 'tcp', 'host' => 'redis', 'port' => 6379]),
 
     OkxClient::class => function (ContainerInterface $c) {
         return new OkxClient(
@@ -79,7 +83,8 @@ return [
             $c->get(RedisClient::class),
             $_ENV['OKX_API_KEY'],
             $_ENV['OKX_SECRET_KEY'],
-            $_ENV['OKX_PASSPHRASE']
+            $_ENV['OKX_PASSPHRASE'],
+            $c->get('okxLogger') 
         );
     },
 
@@ -90,7 +95,20 @@ return [
             chmod($logFile, 0777);
         }
         $logger = new Logger('app');
-        $logger->pushHandler(new StreamHandler($logFile)); 
+        $logger->pushHandler(new StreamHandler($logFile, Logger::DEBUG));
+        return $logger;
+    },
+
+    'okxLogger' => function () {
+        $logFile = __DIR__ . '/../logs/okx.log';
+
+        $handler = new RotatingFileHandler($logFile, 7, Logger::DEBUG);
+        $formatter = new JsonFormatter(JsonFormatter::BATCH_MODE_NEWLINES, true);
+        $handler->setFormatter($formatter);
+
+        $logger = new Logger('okx');
+        $logger->pushHandler($handler);
+
         return $logger;
     },
 
