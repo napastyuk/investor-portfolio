@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Application\Controller;
+namespace App\Interface\Http;
 
-use App\Infrastructure\Okx\OkxClient;
+use App\Infrastructure\Http\Okx\OkxClient;
 use PDO;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;

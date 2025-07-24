@@ -1,6 +1,6 @@
 <?php
 use Slim\App;
-use App\Application\Controller\BalanceController;
+use App\Interface\Http\BalanceController;
 
 return function (App $app) {
     $app->get('/import-balances', [BalanceController::class, 'import']);

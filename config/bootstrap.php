@@ -10,14 +10,16 @@ require __DIR__ . '/../vendor/autoload.php';
 
 // Подключаем .env
 $dotenv = Dotenv\Dotenv::createImmutable(__DIR__ . '/../');
-$dotenv->safeLoad(); // safeLoad() не упадёт, если файла нет
+$dotenv->safeLoad();
 
 // Instantiate DI ContainerBuilder
 $containerBuilder = new ContainerBuilder();
 
-// Add container definitions and build DI container
-$container = $containerBuilder->addDefinitions(__DIR__ . '/container.php')->build();
+// Add container definitions
+$containerBuilder->addDefinitions(__DIR__ . '/container.php');
 
+// Build DI container
+$container = $containerBuilder->build();
 
 // Create app instance
 return $container->get(App::class);

@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Application\Middleware;
+namespace App\Interface\Http\Middleware;
 
 use Psr\Log\LoggerInterface;
 use Psr\Http\Message\ServerRequestInterface;

@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Infrastructure\Okx;
+namespace App\Infrastructure\Http\Okx;
 
 use GuzzleHttp\Client;
 use Predis\Client as Redis;

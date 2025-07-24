@@ -1,6 +1,6 @@
 <?php
 
-use App\Application\Middleware\LoggingMiddleware;
+use App\Interface\Http\Middleware\LoggingMiddleware;
 
 return function (Slim\App $app) {
     $container = $app->getContainer();
