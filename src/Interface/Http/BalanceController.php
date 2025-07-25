@@ -15,12 +15,15 @@ readonly class BalanceController
         private Client $http,
         private \Predis\Client $redis,
         private PDO $pdo,
-        private LoggerInterface $logger
+        private LoggerInterface $logger,
+        private LoggerInterface $okxLogger
     ) {}
 
     public function import(ServerRequestInterface $request, ResponseInterface $response): ResponseInterface
     {
         $user = $request->getAttribute('user');
+
+        $simulated = (bool)($user['is_test_user'] ?? false); 
 
         $client = new OkxClient(
             $this->http,
@@ -28,7 +31,8 @@ readonly class BalanceController
             $user['okx_api_key'],
             $user['okx_secret_key'],
             $user['okx_passphrase'],
-            $this->logger
+            $this->okxLogger, 
+            $simulated
         );
 
         $balances = $client->getBalances();

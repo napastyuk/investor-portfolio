@@ -4,8 +4,7 @@ namespace App\Infrastructure\Http\Okx;
 
 use GuzzleHttp\Client;
 use Predis\Client as Redis;
-use DateTime;
-use Exception;
+use Psr\Log\LoggerInterface;
 
 class OkxClient
 {
@@ -17,7 +16,8 @@ class OkxClient
         private string $apiKey,
         private string $secretKey,
         private string $passphrase,
-        private \Psr\Log\LoggerInterface $logger
+        private LoggerInterface $logger,
+        private bool $simulated = false // ← Новый параметр
     ) {}
 
     private function request(string $method, string $path, string $body = ''): array
@@ -35,6 +35,10 @@ class OkxClient
             'Content-Type' => 'application/json',
         ];
 
+        if ($this->simulated) {
+            $headers['x-simulated-trading'] = '1';
+        }
+
         $uri = self::BASE_URI . $path;
 
         $start = microtime(true);
@@ -51,19 +55,21 @@ class OkxClient
             $responseBody = $response->getBody()->getContents();
             $status = $response->getStatusCode();
 
+            $decoded = json_decode($responseBody, true);
+
             $this->logger->info('OKX HTTP Request', [
                 'method' => $method,
                 'path' => $path,
                 'body' => $body,
                 'status' => $status,
-                'response' => json_decode($responseBody, true),
+                'response' => $decoded,
                 'duration_ms' => $duration
             ]);
 
-            $decoded = json_decode($responseBody, true);
-
             if (!isset($decoded['code']) || $decoded['code'] !== '0') {
-                throw new \RuntimeException("OKX API Error: {$decoded['msg']}");
+                $msg = $decoded['msg'] ?? 'Unknown error';
+                $code = $decoded['code'] ?? 'N/A';
+                throw new \RuntimeException("OKX API Error (code {$code}): {$msg}");
             }
 
             return $decoded;
@@ -72,9 +78,9 @@ class OkxClient
                 'method' => $method,
                 'path' => $path,
                 'body' => $body,
-                'status' => $status,
+                'status' => $status ?? null,
                 'error' => $e->getMessage(),
-                'duration_ms' => $duration
+                'duration_ms' => $duration ?? null,
             ]);
             throw $e;
         }

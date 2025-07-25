@@ -15,6 +15,8 @@ use App\Interface\Http\AuthController;
 use GuzzleHttp\Client as GuzzleClient;
 
 use Monolog\Handler\StreamHandler;
+use Monolog\Handler\RotatingFileHandler;
+use Monolog\Formatter\JsonFormatter; 
 use Monolog\Logger;
 use Nyholm\Psr7\Factory\Psr17Factory;
 
@@ -64,6 +66,10 @@ return [
 
     'okxLogger' => function () {
         $logFile = __DIR__ . '/../logs/okx.log';
+        if (!file_exists($logFile)) {
+            touch($logFile);
+            chmod($logFile, 0666);
+        }
 
         $handler = new Monolog\Handler\RotatingFileHandler($logFile, 7, Logger::DEBUG);
         $formatter = new Monolog\Formatter\JsonFormatter(JsonFormatter::BATCH_MODE_NEWLINES, true);
@@ -106,7 +112,8 @@ return [
             $c->get(GuzzleClient::class),
             $c->get('redis'),
             $c->get(PDO::class),
-            $c->get(LoggerInterface::class)
+            $c->get(LoggerInterface::class),
+            $c->get('okxLogger')
         );
     },
 
