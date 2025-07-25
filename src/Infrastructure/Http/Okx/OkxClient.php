@@ -2,7 +2,7 @@
 
 namespace App\Infrastructure\Http\Okx;
 
-use GuzzleHttp\Client;
+use App\Client\HttpClientInterface;
 use Predis\Client as Redis;
 use Psr\Log\LoggerInterface;
 
@@ -11,7 +11,7 @@ class OkxClient
     private const BASE_URI = 'https://www.okx.com';
 
     public function __construct(
-        private Client $http,
+        private HttpClientInterface $http,
         private Redis $redis,
         private string $apiKey,
         private string $secretKey,
@@ -40,8 +40,8 @@ class OkxClient
         }
 
         $uri = self::BASE_URI . $path;
-
         $start = microtime(true);
+        $status = null;
 
         try {
             $options = ['headers' => $headers];
@@ -101,15 +101,24 @@ class OkxClient
     private function checkRateLimit(): void
     {
         $key = 'okx_rate_limit';
-        $count = (int) $this->redis->get($key);
+        $max = 5;
 
-        if ($count >= 5) {
-            throw new \RuntimeException('Rate limit exceeded. Try later.');
+        while (true) {
+            $count = (int) $this->redis->get($key);
+
+            if ($count < $max) {
+                // лимит не достигнут — увеличиваем и ставим TTL
+                $this->redis->multi();
+                $this->redis->incr($key);
+                $this->redis->expire($key, 1);
+                $this->redis->exec();
+                break;
+            }
+
+            // при превышении лимита ждём до следующей секунды 200мс
+            usleep(200_000); 
+            //и в цикле отправляем на выполнение снова
         }
-
-        $this->redis->multi();
-        $this->redis->incr($key);
-        $this->redis->expire($key, 1);
-        $this->redis->exec();
     }
+
 }

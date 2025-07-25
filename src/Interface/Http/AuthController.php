@@ -5,10 +5,11 @@ namespace App\Interface\Http;
 use PDO;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
+use App\Interface\Http\Responder\JsonResponder;
 
 readonly class AuthController
 {
-    public function __construct(private PDO $pdo) {}
+    public function __construct(private PDO $pdo, private JsonResponder $responder) {}
 
     public function register(ServerRequestInterface $request, ResponseInterface $response): ResponseInterface
     {
@@ -16,8 +17,7 @@ readonly class AuthController
 
         foreach (['name', 'okx_api_key', 'okx_secret_key', 'okx_passphrase'] as $field) {
             if (empty($data[$field])) {
-                $response->getBody()->write(json_encode(['error' => "Missing field: $field"]));
-                return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
+                return $this->responder->error($response, "Missing field: $field", 400);
             }
         }
 
@@ -36,11 +36,9 @@ readonly class AuthController
             'okx_passphrase' => $data['okx_passphrase'],
         ]);
 
-        $response->getBody()->write(json_encode([
+        return $this->responder->success($response, [
             'id' => $this->pdo->lastInsertId(),
             'token' => $token
-        ], JSON_UNESCAPED_UNICODE));
-
-        return $response->withHeader('Content-Type', 'application/json')->withStatus(201);
+        ], 201);
     }
 }

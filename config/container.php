@@ -12,6 +12,8 @@ use App\Interface\Http\NotFoundHandler;
 use App\Interface\Http\Responder\JsonResponder;
 use App\Interface\Http\AuthController;
 
+use App\Client\HttpClientInterface;
+use App\Client\GuzzleHttpClient;
 use GuzzleHttp\Client as GuzzleClient;
 
 use Monolog\Handler\StreamHandler;
@@ -20,7 +22,7 @@ use Monolog\Formatter\JsonFormatter;
 use Monolog\Logger;
 use Nyholm\Psr7\Factory\Psr17Factory;
 
-use Predis\Client as Redis;
+use Predis\Client as RedisClient;
 
 use Psr\Container\ContainerInterface;
 use Psr\Http\Message\ResponseFactoryInterface;
@@ -84,7 +86,7 @@ return [
     ResponseFactoryInterface::class => fn() => new Psr17Factory(),
     ServerRequestFactoryInterface::class => fn() => new Psr17Factory(),
 
-    GuzzleClient::class => fn() => new GuzzleClient(),
+    HttpClientInterface::class => fn() => new GuzzleHttpClient(new \GuzzleHttp\Client()),
 
     PDO::class => function () {
         $settings = require __DIR__ . '/defaults.php';
@@ -99,21 +101,21 @@ return [
         );
     },
 
-
-    BalanceRepository::class => fn(ContainerInterface $c) => new BalanceRepository($c->get(PDO::class)),
-
-    BalanceService::class => fn(ContainerInterface $c) => new BalanceService(
-        $c->get(OkxClient::class),
-        $c->get(BalanceRepository::class)
-    ),
+    // пока вроде не нужны
+    // BalanceRepository::class => fn(ContainerInterface $c) => new BalanceRepository($c->get(PDO::class)),
+    // BalanceService::class => fn(ContainerInterface $c) => new BalanceService(
+    //     $c->get(OkxClient::class),
+    //     $c->get(BalanceRepository::class)
+    // ),
 
     BalanceController::class => function (ContainerInterface $c) {
         return new BalanceController(
-            $c->get(GuzzleClient::class),
-            $c->get('redis'),
+            $c->get(HttpClientInterface::class),
+            $c->get(RedisClient::class), 
             $c->get(PDO::class),
             $c->get(LoggerInterface::class),
-            $c->get('okxLogger')
+            $c->get('okxLogger'), 
+            $c->get(JsonResponder::class)
         );
     },
 
@@ -126,6 +128,8 @@ return [
     NotFoundHandler::class => fn(ContainerInterface $c) => new NotFoundHandler(
         $c->get(LoggerInterface::class)
     ),
+
+    // \Predis\Client::class => DI\get('redis'),
 
     'redis' => function () {
         return new \Predis\Client([
@@ -140,6 +144,7 @@ return [
     ),
 
     AuthController::class => fn(ContainerInterface $c) => new AuthController(
-        $c->get(PDO::class)
+        $c->get(PDO::class),
+        $c->get(JsonResponder::class)
     ),
 ];

@@ -1,8 +1,4 @@
 <?php
-/**
- * Start up the Slim App.
- */
-
 use DI\ContainerBuilder;
 use Slim\App;
 

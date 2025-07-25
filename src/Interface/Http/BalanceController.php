@@ -3,20 +3,22 @@
 namespace App\Interface\Http;
 
 use App\Infrastructure\Http\Okx\OkxClient;
+use App\Interface\Http\Responder\JsonResponder;
+use App\Client\HttpClientInterface;
 use PDO;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Log\LoggerInterface;
-use GuzzleHttp\Client;
 
 readonly class BalanceController
 {
     public function __construct(
-        private Client $http,
+        private HttpClientInterface $http,
         private \Predis\Client $redis,
         private PDO $pdo,
         private LoggerInterface $logger,
-        private LoggerInterface $okxLogger
+        private LoggerInterface $okxLogger,
+        private JsonResponder $responder
     ) {}
 
     public function import(ServerRequestInterface $request, ResponseInterface $response): ResponseInterface
@@ -35,7 +37,16 @@ readonly class BalanceController
             $simulated
         );
 
-        $balances = $client->getBalances();
+        try {
+            $balances = $client->getBalances();
+        } catch (\Throwable $e) {
+            return $this->responder->error($response, [
+                'error' => $e->getMessage(),
+                'exception' => get_class($e),
+                'file' => $e->getFile(),
+                'line' => $e->getLine()
+            ], 502);
+        };
 
         $stmt = $this->pdo->prepare(
             'INSERT INTO user_balances (user_id, ccy, eq, eq_usd, rate)
@@ -67,19 +78,17 @@ readonly class BalanceController
 
         $this->logger->info("User #{$user['id']} inserted {$inserted}");
 
-        $response->getBody()->write(json_encode(['inserted' => $inserted], JSON_UNESCAPED_UNICODE));
-        return $response->withHeader('Content-Type', 'application/json');
+        return $this->responder->success($response, ['inserted' => $inserted]);
     }
 
     public function list(ServerRequestInterface $request, ResponseInterface $response): ResponseInterface
     {
         $user = $request->getAttribute('user');
 
-        $stmt = $this->pdo->prepare('SELECT * FROM user_balances WHERE user_id = :id ORDER BY created_at DESC LIMIT 100');
+        $stmt = $this->pdo->prepare('SELECT * FROM user_balances WHERE user_id = :id ORDER BY created_at DESC');
         $stmt->execute(['id' => $user['id']]);
         $result = $stmt->fetchAll();
 
-        $response->getBody()->write(json_encode($result, JSON_UNESCAPED_UNICODE));
-        return $response->withHeader('Content-Type', 'application/json');
+        return $this->responder->success($response, $result);
     }
 }

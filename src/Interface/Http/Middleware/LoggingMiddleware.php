@@ -49,8 +49,7 @@ class LoggingMiddleware implements MiddlewareInterface
             throw $e; // пробрасываем дальше, чтобы сработал NotFoundHandler
         } catch (\Throwable $e) {
             $this->logger->error('Unhandled exception', [
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
+                'exception' => $e,
             ]);
             throw $e;
         }
