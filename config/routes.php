@@ -1,8 +1,18 @@
 <?php
+
 use Slim\App;
+use Slim\Routing\RouteCollectorProxy;
 use App\Interface\Http\BalanceController;
+use App\Interface\Http\AuthController;
+use App\Interface\Http\Middleware\AuthMiddleware;
 
 return function (App $app) {
-    $app->get('/import-balances', [BalanceController::class, 'import']);
-    $app->get('/balances', [BalanceController::class, 'list']);
+    // Регистрация — без авторизации
+    $app->post('/register', [AuthController::class, 'register']);
+
+    // Приватные маршруты — с авторизацией
+    $app->group('', function (RouteCollectorProxy $group) {
+        $group->get('/import-balances', [BalanceController::class, 'import']);
+        $group->get('/balances', [BalanceController::class, 'list']);
+    })->add(AuthMiddleware::class);
 };

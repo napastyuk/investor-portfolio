@@ -1,24 +1,33 @@
 <?php
 
+use App\Domain\Service\BalanceService;
+
 use App\Infrastructure\Http\Okx\OkxClient;
-use GuzzleHttp\Client as GuzzleClient;
-use Monolog\Handler\StreamHandler;
-use Monolog\Logger;
-use Psr\Log\LoggerInterface;
-use Slim\Psr7\Factory\ResponseFactory;
-use Psr\Http\Message\ResponseFactoryInterface;
-use Psr\Http\Message\ServerRequestFactoryInterface;
-use Nyholm\Psr7\Factory\Psr17Factory;
-use Predis\Client as Redis;
-use App\Interface\Http\Responder\JsonResponder;
+use App\Infrastructure\Persistence\BalanceRepository;
+
+use App\Interface\Http\BalanceController;
+use App\Interface\Http\Middleware\AuthMiddleware;
 use App\Interface\Http\Middleware\LoggingMiddleware;
 use App\Interface\Http\NotFoundHandler;
+use App\Interface\Http\Responder\JsonResponder;
+use App\Interface\Http\AuthController;
+
+use GuzzleHttp\Client as GuzzleClient;
+
+use Monolog\Handler\StreamHandler;
+use Monolog\Logger;
+use Nyholm\Psr7\Factory\Psr17Factory;
+
+use Predis\Client as Redis;
+
 use Psr\Container\ContainerInterface;
-use App\Interface\Http\BalanceController;
-use App\Infrastructure\Persistence\BalanceRepository;
-use App\Domain\Service\BalanceService;
+use Psr\Http\Message\ResponseFactoryInterface;
+use Psr\Http\Message\ServerRequestFactoryInterface;
+use Psr\Log\LoggerInterface;
+
 use Slim\App;
 use Slim\Factory\AppFactory;
+use Slim\Psr7\Factory\ResponseFactory;
 
 return [
     App::class => function (ContainerInterface $container) {
@@ -41,7 +50,6 @@ return [
 
         return $app;
     },
-
 
     LoggerInterface::class => function () {
         $logFile = __DIR__ . '/../logs/app.log';
@@ -85,17 +93,6 @@ return [
         );
     },
 
-    OkxClient::class => function (ContainerInterface $c) {
-        $settings = require __DIR__ . '/defaults.php';
-        return new OkxClient(
-            $c->get(GuzzleClient::class),
-            $c->get('redis'),
-            $settings['okx']['api_key'],
-            $settings['okx']['secret_key'],
-            $settings['okx']['passphrase'],
-            $c->get(LoggerInterface::class)
-        );
-    },
 
     BalanceRepository::class => fn(ContainerInterface $c) => new BalanceRepository($c->get(PDO::class)),
 
@@ -106,7 +103,8 @@ return [
 
     BalanceController::class => function (ContainerInterface $c) {
         return new BalanceController(
-            $c->get(OkxClient::class),
+            $c->get(GuzzleClient::class),
+            $c->get('redis'),
             $c->get(PDO::class),
             $c->get(LoggerInterface::class)
         );
@@ -129,4 +127,12 @@ return [
             'port' => $_ENV['REDIS_PORT'] ?? 6379,
         ]);
     },
+
+    AuthMiddleware::class => fn(ContainerInterface $c) => new AuthMiddleware(
+        $c->get(PDO::class)
+    ),
+
+    AuthController::class => fn(ContainerInterface $c) => new AuthController(
+        $c->get(PDO::class)
+    ),
 ];
