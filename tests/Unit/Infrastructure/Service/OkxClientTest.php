@@ -8,66 +8,34 @@ use PDO;
 use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Log\LoggerInterface;
-use Predis\Client as Redis;
+use Tests\Stub\FakeRedis;
 
 class OkxClientTest extends TestCase
 {
     public function testSendBalanceRequestReturnsValidResponse(): void
     {
-        $mockResponse = $this->createMock(ResponseInterface::class);
-        $mockResponse->method('getBody')->willReturn(json_encode(['data' => ['balance' => '100']]));
-
-        $httpClient = $this->createMock(HttpClientInterface::class);
-        $httpClient->method('request')->willReturn($mockResponse);
-
-        $redis = $this->createMock(Redis::class);
-        $redis->method('get')->willReturn(null);
-        $redis->method('setex')->willReturn(true);
-
-        $logger = $this->createMock(LoggerInterface::class);
-        $pdo = $this->createMock(PDO::class);
-
-        $httpClient = $this->createMock(HttpClientInterface::class);
-        $redis = $this->createMock(Redis::class);
-        $logger = $this->createMock(LoggerInterface::class);
-        $apiKey = 'key';
-        $secretKey = 'secret';
-        $passphrase = 'pass';
-        $isSimulated = false;
-
-        $client = new OkxClient($httpClient, $logger, $redis);
-        $response = $client->getBalances($apiKey, $secretKey, $passphrase, $isSimulated);
-
-        $this->assertInstanceOf(ResponseInterface::class, $response);
-    }
-
-    public function testAddsSimulatedTradingHeader(): void
-    {
-        $expectedHeader = 'x-simulated-trading';
+        $stream = \Nyholm\Psr7\Stream::create(json_encode([
+            'code' => '0',
+            'data' => [
+                [
+                    'details' => ['balance' => '100']
+                ]
+            ]
+        ]));
 
         $mockResponse = $this->createMock(ResponseInterface::class);
+        $mockResponse->method('getBody')->willReturn($stream);
 
         $httpClient = $this->createMock(HttpClientInterface::class);
         $httpClient->expects($this->once())
             ->method('request')
             ->with(
                 $this->equalTo('GET'),
-                $this->equalTo('/api/v5/account/balance'),
-                $this->callback(function ($options) use ($expectedHeader) {
-                    return isset($options['headers'][$expectedHeader]) && $options['headers'][$expectedHeader] === '1';
-                })
+                $this->equalTo('https://www.okx.com/api/v5/account/balance'),
+                $this->anything()
             )
             ->willReturn($mockResponse);
 
-        $redis = $this->createMock(Redis::class);
-        $redis->method('get')->willReturn(null);
-        $redis->method('setex')->willReturn(true);
-
-        $logger = $this->createMock(LoggerInterface::class);
-        $pdo = $this->createMock(PDO::class);
-
-        $httpClient = $this->createMock(HttpClientInterface::class);
-        $redis = $this->createMock(Redis::class);
         $logger = $this->createMock(LoggerInterface::class);
 
         $apiKey = 'key';
@@ -75,7 +43,53 @@ class OkxClientTest extends TestCase
         $passphrase = 'pass';
         $isSimulated = false;
 
-        $client = new OkxClient($httpClient, $logger, $redis);
+        $redis = new FakeRedis();
+        $pdo = $this->createMock(\PDO::class);
+        $client = new OkxClient($httpClient, $logger, $redis, $pdo);
+        $response = $client->getBalances($apiKey, $secretKey, $passphrase, $isSimulated);
+
+        $this->assertIsArray($response);
+        $this->assertArrayHasKey('balance', $response);
+    }
+
+    public function testAddsSimulatedTradingHeader(): void
+    {
+        $expectedHeader = 'x-simulated-trading';
+
+        $stream = \Nyholm\Psr7\Stream::create(json_encode([
+            'code' => '0',
+            'data' => [
+                [
+                    'details' => []
+                ]
+            ]
+        ]));
+
+        $mockResponse = $this->createMock(ResponseInterface::class);
+        $mockResponse->method('getBody')->willReturn($stream);
+
+        $httpClient = $this->createMock(HttpClientInterface::class);
+        $httpClient->expects($this->once())
+            ->method('request')
+            ->with(
+                $this->equalTo('GET'),
+                $this->equalTo('https://www.okx.com/api/v5/account/balance'),
+                $this->callback(function ($options) use ($expectedHeader) {
+                    return isset($options['headers'][$expectedHeader]) && $options['headers'][$expectedHeader] === '1';
+                })
+            )
+            ->willReturn($mockResponse);
+
+        $redis = new FakeRedis();
+        $logger = $this->createMock(LoggerInterface::class);
+
+        $apiKey = 'key';
+        $secretKey = 'secret';
+        $passphrase = 'pass';
+        $isSimulated = true;
+
+        $pdo = $this->createMock(\PDO::class);
+        $client = new OkxClient($httpClient, $logger, $redis, $pdo);
         $client->getBalances($apiKey, $secretKey, $passphrase, $isSimulated);
     }
 }

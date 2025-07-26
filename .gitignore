@@ -4,3 +4,4 @@
 /logs/*
 /var/cache/*
 .env
+.phpunit.result.cache

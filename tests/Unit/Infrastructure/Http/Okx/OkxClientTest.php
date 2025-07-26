@@ -6,15 +6,15 @@ use App\Infrastructure\Service\OkxClient;
 use GuzzleHttp\Psr7\Response as GuzzleResponse;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\LoggerInterface;
-use Predis\Client as Redis;
 use App\Client\HttpClientInterface;
+use Tests\Stub\FakeRedis;
 
 class OkxClientTest extends TestCase
 {
     public function testSendBalanceRequestReturnsValidResponse(): void
     {
         $httpClient = $this->createMock(HttpClientInterface::class);
-        $redis = $this->createMock(Redis::class);
+        $redis = new FakeRedis();
         $logger = $this->createMock(LoggerInterface::class);
 
         $apiKey = 'key';
@@ -31,19 +31,14 @@ class OkxClientTest extends TestCase
 
         $httpClient->expects($this->once())
             ->method('request')
-            ->with('GET', '/api/v5/account/balance', $this->callback(function ($options) use ($apiKey) {
+            ->with('GET', 'https://www.okx.com/api/v5/account/balance', $this->callback(function ($options) use ($apiKey) {
                 return isset($options['headers']['OK-ACCESS-KEY']) &&
-                       $options['headers']['OK-ACCESS-KEY'] === $apiKey;
+                    $options['headers']['OK-ACCESS-KEY'] === $apiKey;
             }))
             ->willReturn(new GuzzleResponse(200, [], $expectedBody));
 
-        $redis->method('get')->willReturn(0);
-        $redis->method('multi')->willReturn($redis);
-        $redis->method('incr')->willReturn(1);
-        $redis->method('expire')->willReturn(1);
-        $redis->method('exec')->willReturn([1, 1]);
-
-        $client = new OkxClient($httpClient, $logger, $redis);
+        $pdo = $this->createMock(\PDO::class);
+        $client = new OkxClient($httpClient, $logger, $redis, $pdo);
         $response = $client->getBalances($apiKey, $secretKey, $passphrase, $isSimulated);
 
         $this->assertEquals([['ccy' => 'BTC', 'bal' => '0.5']], $response);
@@ -52,7 +47,7 @@ class OkxClientTest extends TestCase
     public function testThrowsExceptionWhenRateLimitExceeded(): void
     {
         $httpClient = $this->createMock(HttpClientInterface::class);
-        $redis = $this->createMock(Redis::class);
+        $redis = new FakeRedis();
         $logger = $this->createMock(LoggerInterface::class);
 
         $apiKey = 'key';
@@ -60,9 +55,9 @@ class OkxClientTest extends TestCase
         $passphrase = 'pass';
         $isSimulated = false;
 
-        $redis->expects($this->once())->method('get')->willReturn(5);
-
-        $client = new OkxClient($httpClient, $logger, $redis);
+        $redis = new FakeRedis();
+        $pdo = $this->createMock(\PDO::class);
+        $client = new OkxClient($httpClient, $logger, $redis, $pdo);
 
         $this->expectException(\RuntimeException::class);
         $client->getBalances($apiKey, $secretKey, $passphrase, $isSimulated);
@@ -71,7 +66,7 @@ class OkxClientTest extends TestCase
     public function testAddsSimulatedTradingHeader(): void
     {
         $httpClient = $this->createMock(HttpClientInterface::class);
-        $redis = $this->createMock(Redis::class);
+        $redis = new FakeRedis();
         $logger = $this->createMock(LoggerInterface::class);
 
         $apiKey = 'key';
@@ -88,19 +83,14 @@ class OkxClientTest extends TestCase
 
         $httpClient->expects($this->once())
             ->method('request')
-            ->with('GET', '/api/v5/account/balance', $this->callback(function ($options) {
+            ->with('GET', 'https://www.okx.com/api/v5/account/balance', $this->callback(function ($options) {
                 return isset($options['headers']['x-simulated-trading']) &&
-                       $options['headers']['x-simulated-trading'] === '1';
+                    $options['headers']['x-simulated-trading'] === '1';
             }))
             ->willReturn(new GuzzleResponse(200, [], $expectedBody));
 
-        $redis->method('get')->willReturn(0);
-        $redis->method('multi')->willReturn($redis);
-        $redis->method('incr')->willReturn(1);
-        $redis->method('expire')->willReturn(1);
-        $redis->method('exec')->willReturn([1, 1]);
-
-        $client = new OkxClient($httpClient, $logger, $redis);
+        $pdo = $this->createMock(\PDO::class);
+        $client = new OkxClient($httpClient, $logger, $redis, $pdo);
         $response = $client->getBalances($apiKey, $secretKey, $passphrase, $isSimulated);
 
         $this->assertEquals([], $response);

@@ -10,6 +10,7 @@ use PDO;
 use PDOStatement;
 use PHPUnit\Framework\TestCase;
 use App\Application\Service\OkxClientInterface;
+use App\Domain\Repository\BalanceRepositoryInterface;
 
 class BalanceControllerTest extends TestCase
 {
@@ -24,41 +25,52 @@ class BalanceControllerTest extends TestCase
 
         $okxClient = $this->createMock(OkxClientInterface::class);
         $okxClient->expects($this->once())
-            ->method('getBalances')
-            ->with($user)
+            ->method('fetchBalances') 
+            ->with($user['id'])
             ->willReturn($balances);
 
-        $pdo = $this->createMock(PDO::class);
+        $balanceRepository = $this->createMock(BalanceRepositoryInterface::class);
+        $balanceRepository->expects($this->once())
+            ->method('saveBalances')
+            ->with($user['id'], $balances);
 
-        $stmt = $this->createMock(PDOStatement::class);
-        $stmt->expects($this->exactly(2))->method('execute');
+        $controller = new BalanceController($okxClient, $balanceRepository);
 
-        $pdo->expects($this->exactly(2))->method('prepare')->willReturn($stmt);
-
-        $controller = new BalanceController($okxClient, $pdo, new JsonResponder());
-
-        $request = (new ServerRequest('GET', '/balances'))
+        $request = (new ServerRequest('POST', '/balances'))
             ->withAttribute('user', $user);
 
-        $response = $controller->get($request, new Response());
+        $response = $controller->import($request, new Response());
 
         $this->assertEquals(200, $response->getStatusCode());
         $this->assertJson((string)$response->getBody());
 
         $body = json_decode((string)$response->getBody(), true);
-        $this->assertSame($balances, $body);
+        $this->assertSame([
+            'status' => 'success',
+            'balances' => $balances,
+        ], $body);
     }
 
-    public function testMissingUserAttributeThrowsException()
+
+    public function testMissingUserAttributeReturnsEmpty()
     {
         $okxClient = $this->createMock(OkxClientInterface::class);
-        $pdo = $this->createMock(PDO::class);
-        $controller = new BalanceController($okxClient, $pdo, new JsonResponder());
+        $balanceRepository = $this->createMock(BalanceRepositoryInterface::class);
+
+        $balanceRepository->expects($this->once())
+            ->method('getBalancesByUserId')
+            ->with(0)
+            ->willReturn([]);
+
+        $controller = new BalanceController($okxClient, $balanceRepository);
 
         $request = new ServerRequest('GET', '/balances');
+        $response = $controller->list($request, new Response());
 
-        $response = $controller->get($request, new Response());
+        $this->assertEquals(200, $response->getStatusCode());
+        $this->assertJson((string)$response->getBody());
 
-        $this->assertEquals(401, $response->getStatusCode());
+        $body = json_decode((string)$response->getBody(), true);
+        $this->assertSame(['balances' => []], $body);
     }
 }

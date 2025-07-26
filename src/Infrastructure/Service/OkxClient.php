@@ -4,10 +4,9 @@ namespace App\Infrastructure\Service;
 
 use App\Client\HttpClientInterface;
 use Psr\Log\LoggerInterface;
-use Predis\Client as Redis;
+use App\Infrastructure\Redis\SimpleRedisInterface;
 use RuntimeException;
 use App\Application\Service\OkxClientInterface;
-use Psr\Http\Message\ResponseInterface;
 use PDO;
 
 class OkxClient implements OkxClientInterface
@@ -17,7 +16,7 @@ class OkxClient implements OkxClientInterface
     public function __construct(
         private HttpClientInterface $httpClient,
         private LoggerInterface $logger,
-        private Redis $redis,
+        private SimpleRedisInterface $redis,
         private PDO $pdo
     ) {}
 

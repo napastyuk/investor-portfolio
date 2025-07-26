@@ -2,6 +2,8 @@
 
 use App\Application\Service\OkxClientInterface;
 use App\Infrastructure\Service\OkxClient;
+use App\Infrastructure\Redis\SimpleRedisInterface;
+use App\Infrastructure\Redis\PredisAdapter;
 
 use App\Infrastructure\Repository\BalanceRepository;
 use App\Domain\Repository\BalanceRepositoryInterface;
@@ -130,5 +132,7 @@ return [
     BalanceRepositoryInterface::class => \DI\autowire(BalanceRepository::class),
 
     BalanceController::class => \DI\autowire(),
+
+    SimpleRedisInterface::class => \DI\autowire(PredisAdapter::class),
 
 ];
