@@ -45,9 +45,9 @@ services:
     networks:
       - app-network
 
-volumes:
-  db_data:
+# volumes:
+#   db_data:
 
-networks:
-  app-network:
-    driver: bridge
+# networks:
+#   app-network:
+#     driver: bridge
