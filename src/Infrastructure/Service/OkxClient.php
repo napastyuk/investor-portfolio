@@ -21,72 +21,6 @@ class OkxClient implements OkxClientInterface
         private PDO $pdo
     ) {}
 
-    // private function request(string $method, string $path, string $body = ''): array
-    // {
-    //     $this->checkRateLimit();
-
-    //     $timestamp = (new \DateTime('now', new \DateTimeZone('UTC')))->format('Y-m-d\TH:i:s.v\Z');
-    //     $signature = $this->generateSignature($timestamp, $method, $path, $body);
-
-    //     $headers = [
-    //         'OK-ACCESS-KEY' => $this->apiKey,
-    //         'OK-ACCESS-SIGN' => $signature,
-    //         'OK-ACCESS-TIMESTAMP' => $timestamp,
-    //         'OK-ACCESS-PASSPHRASE' => $this->passphrase,
-    //         'Content-Type' => 'application/json',
-    //     ];
-
-    //     if ($this->simulated) {
-    //         $headers['x-simulated-trading'] = '1';
-    //     }
-
-    //     $uri = self::BASE_URI . $path;
-    //     $start = microtime(true);
-    //     $status = null;
-
-    //     try {
-    //         $options = ['headers' => $headers];
-    //         if (!empty($body)) {
-    //             $options['body'] = $body;
-    //         }
-
-    //         $response = $this->httpClient->request($method, $uri, $options);
-    //         $duration = round((microtime(true) - $start) * 1000, 2);
-
-    //         $responseBody = $response->getBody()->getContents();
-    //         $status = $response->getStatusCode();
-
-    //         $decoded = json_decode($responseBody, true);
-
-    //         $this->logger->info('OKX HTTP Request', [
-    //             'method' => $method,
-    //             'path' => $path,
-    //             'body' => $body,
-    //             'status' => $status,
-    //             'response' => $decoded,
-    //             'duration_ms' => $duration
-    //         ]);
-
-    //         if (!isset($decoded['code']) || $decoded['code'] !== '0') {
-    //             $msg = $decoded['msg'] ?? 'Unknown error';
-    //             $code = $decoded['code'] ?? 'N/A';
-    //             throw new \RuntimeException("OKX API Error (code {$code}): {$msg}");
-    //         }
-
-    //         return $decoded;
-    //     } catch (\Throwable $e) {
-    //         $this->logger->error('OKX Request failed', [
-    //             'method' => $method,
-    //             'path' => $path,
-    //             'body' => $body,
-    //             'status' => $status ?? null,
-    //             'error' => $e->getMessage(),
-    //             'duration_ms' => $duration ?? null,
-    //         ]);
-    //         throw $e;
-    //     }
-    // }
-
     public function getBalances(string $apiKey, string $secretKey, string $passphrase, bool $isSimulated = false): array
     {
         $this->checkRateLimitPerUser($apiKey);
@@ -124,7 +58,6 @@ class OkxClient implements OkxClientInterface
         return $body['data'][0]['details'] ?? [];
     }
 
-
     private function getTimestamp(): string
     {
         return gmdate('Y-m-d\TH:i:s\Z');
@@ -136,36 +69,6 @@ class OkxClient implements OkxClientInterface
         $message = $timestamp . $method . $path . $body;
         return base64_encode(hash_hmac('sha256', $message, $secretKey, true));
     }
-
-    // private function generateSignature(string $timestamp, string $method, string $path, string $body): string
-    // {
-    //     $prehash = $timestamp . $method . $path . $body;
-    //     return base64_encode(hash_hmac('sha256', $prehash, $this->secretKey, true));
-    // }
-
-    // private function checkRateLimit(): void
-    // {
-    //     //TODO: добавить к ключу id пользователя чтобя лимиты были на пользователя
-    //     $key = "okx_rate_limit";
-    //     $max = 5;
-
-    //     while (true) {
-    //         $count = (int) $this->redis->get($key);
-
-    //         if ($count < $max) {
-    //             // лимит не достигнут — увеличиваем и ставим TTL
-    //             $this->redis->multi();
-    //             $this->redis->incr($key);
-    //             $this->redis->expire($key, 1);
-    //             $this->redis->exec();
-    //             break;
-    //         }
-
-    //         // при превышении лимита ждём до следующей секунды 200мс
-    //         usleep(200_000);
-    //         //и в цикле отправляем на выполнение снова
-    //     }
-    // }
 
     public function fetchBalances(int $userId): array
     {

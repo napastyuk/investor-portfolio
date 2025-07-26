@@ -1,7 +1,5 @@
 <?php
 
-use Dotenv\Exception\InvalidPathException;
-
 // Базовая валидация переменных окружения
 $requiredEnv = ['DB_DSN', 'DB_USER', 'DB_PASS'];
 $missing = array_filter($requiredEnv, fn($key) => empty($_ENV[$key]));

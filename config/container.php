@@ -1,7 +1,5 @@
 <?php
 
-use App\Domain\Service\BalanceService;
-
 use App\Application\Service\OkxClientInterface;
 use App\Infrastructure\Service\OkxClient;
 
@@ -17,10 +15,7 @@ use App\Interface\Http\AuthController;
 use App\Client\HttpClientInterface;
 use App\Client\GuzzleHttpClient;
 
-use GuzzleHttp\Client as GuzzleClient;
-
 use Monolog\Handler\StreamHandler;
-use Monolog\Handler\RotatingFileHandler;
 use Monolog\Formatter\JsonFormatter;
 use Monolog\Logger;
 use Nyholm\Psr7\Factory\Psr17Factory;
@@ -32,9 +27,6 @@ use Psr\Log\LoggerInterface;
 
 use Slim\App;
 use Slim\Factory\AppFactory;
-use Slim\Psr7\Factory\ResponseFactory;
-
-use DI\ContainerBuilder;
 
 use Predis\Client as PredisClient;
 
@@ -49,8 +41,8 @@ return [
         (require __DIR__ . '/middleware.php')($app);
 
         // Обработка 404
-        $callableResolver = $app->getCallableResolver();
-        $responseFactory = $app->getResponseFactory();
+        // $callableResolver = $app->getCallableResolver();
+        // $responseFactory = $app->getResponseFactory();
         $errorMiddleware = $app->addErrorMiddleware(true, true, true);
         $errorMiddleware->setErrorHandler(
             \Slim\Exception\HttpNotFoundException::class,
