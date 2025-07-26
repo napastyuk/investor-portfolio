@@ -2,9 +2,11 @@
 
 use App\Domain\Service\BalanceService;
 
-use App\Infrastructure\Http\Okx\OkxClient;
-use App\Infrastructure\Persistence\BalanceRepository;
+use App\Application\Service\OkxClientInterface;
+use App\Infrastructure\Service\OkxClient;
 
+use App\Infrastructure\Repository\BalanceRepository;
+use App\Domain\Repository\BalanceRepositoryInterface;
 use App\Interface\Http\BalanceController;
 use App\Interface\Http\Middleware\AuthMiddleware;
 use App\Interface\Http\Middleware\LoggingMiddleware;
@@ -14,15 +16,14 @@ use App\Interface\Http\AuthController;
 
 use App\Client\HttpClientInterface;
 use App\Client\GuzzleHttpClient;
+
 use GuzzleHttp\Client as GuzzleClient;
 
 use Monolog\Handler\StreamHandler;
 use Monolog\Handler\RotatingFileHandler;
-use Monolog\Formatter\JsonFormatter; 
+use Monolog\Formatter\JsonFormatter;
 use Monolog\Logger;
 use Nyholm\Psr7\Factory\Psr17Factory;
-
-use Predis\Client as RedisClient;
 
 use Psr\Container\ContainerInterface;
 use Psr\Http\Message\ResponseFactoryInterface;
@@ -32,6 +33,10 @@ use Psr\Log\LoggerInterface;
 use Slim\App;
 use Slim\Factory\AppFactory;
 use Slim\Psr7\Factory\ResponseFactory;
+
+use DI\ContainerBuilder;
+
+use Predis\Client as PredisClient;
 
 return [
     App::class => function (ContainerInterface $container) {
@@ -83,6 +88,8 @@ return [
         return $logger;
     },
 
+    OkxClientInterface::class => \DI\autowire(OkxClient::class),
+
     ResponseFactoryInterface::class => fn() => new Psr17Factory(),
     ServerRequestFactoryInterface::class => fn() => new Psr17Factory(),
 
@@ -101,24 +108,6 @@ return [
         );
     },
 
-    // пока вроде не нужны
-    // BalanceRepository::class => fn(ContainerInterface $c) => new BalanceRepository($c->get(PDO::class)),
-    // BalanceService::class => fn(ContainerInterface $c) => new BalanceService(
-    //     $c->get(OkxClient::class),
-    //     $c->get(BalanceRepository::class)
-    // ),
-
-    BalanceController::class => function (ContainerInterface $c) {
-        return new BalanceController(
-            $c->get(HttpClientInterface::class),
-            $c->get(RedisClient::class), 
-            $c->get(PDO::class),
-            $c->get(LoggerInterface::class),
-            $c->get('okxLogger'), 
-            $c->get(JsonResponder::class)
-        );
-    },
-
     JsonResponder::class => fn() => new JsonResponder(),
 
     LoggingMiddleware::class => fn(ContainerInterface $c) => new LoggingMiddleware(
@@ -129,13 +118,11 @@ return [
         $c->get(LoggerInterface::class)
     ),
 
-    // \Predis\Client::class => DI\get('redis'),
-
-    'redis' => function () {
-        return new \Predis\Client([
+    PredisClient::class => function () {
+        return new PredisClient([
             'scheme' => 'tcp',
-            'host' => $_ENV['REDIS_HOST'] ?? 'redis',
-            'port' => $_ENV['REDIS_PORT'] ?? 6379,
+            'host' => $_ENV['REDIS_HOST'],
+            'port' => $_ENV['REDIS_PORT'],
         ]);
     },
 
@@ -147,4 +134,9 @@ return [
         $c->get(PDO::class),
         $c->get(JsonResponder::class)
     ),
+
+    BalanceRepositoryInterface::class => \DI\autowire(BalanceRepository::class),
+
+    BalanceController::class => \DI\autowire(),
+
 ];
