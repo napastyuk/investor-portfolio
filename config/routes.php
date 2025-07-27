@@ -12,7 +12,7 @@ return function (App $app) {
 
     // Приватные маршруты — с авторизацией
     $app->group('', function (RouteCollectorProxy $group) {
-        $group->get('/balances/import', [BalanceController::class, 'import']);
+        $group->post('/balances/import', [BalanceController::class, 'import']);
         $group->get('/balances', [BalanceController::class, 'list']);
     })->add(AuthMiddleware::class);
 };
