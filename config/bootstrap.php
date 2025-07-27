@@ -1,21 +1,23 @@
 <?php
+
 use DI\ContainerBuilder;
 use Slim\App;
 
+//подключаем автозагрузщик Composer
 require __DIR__ . '/../vendor/autoload.php';
 
-// Подключаем .env
+// подключаем .env
 $dotenv = Dotenv\Dotenv::createImmutable(__DIR__ . '/../');
 $dotenv->safeLoad();
 
-// Instantiate DI ContainerBuilder
+// создаем билдер DI контейнера
 $containerBuilder = new ContainerBuilder();
 
-// Add container definitions
+// загружается файл с определениями зависимостей для DI
 $containerBuilder->addDefinitions(__DIR__ . '/container.php');
 
-// Build DI container
+// собираем DI контейнер
 $container = $containerBuilder->build();
 
-// Create app instance
+// создаем экземпляр slim-приложения
 return $container->get(App::class);

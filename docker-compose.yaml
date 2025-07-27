@@ -47,6 +47,15 @@ services:
     networks:
       - app-network
 
+  swagger-ui:
+    image: swaggerapi/swagger-ui
+    ports:
+      - "8081:8080"
+    volumes:
+      - ./public/swagger.json:/usr/share/nginx/html/swagger.json
+    environment:
+      SWAGGER_JSON: /swagger.json
+
 volumes:
   db_data:
 
