@@ -5,6 +5,8 @@ services:
       dockerfile: Dockerfile
     ports:
       - "80:8080"
+    volumes:
+      - .:/var/www
     networks:
       - app-network
     depends_on:
@@ -14,6 +16,9 @@ services:
     build:
       context: .
       dockerfile: docker/fpm/Dockerfile
+    volumes:
+      - .:/var/www
+      - ./logs:/var/www/logs
     networks:
       - app-network
         
@@ -29,6 +34,9 @@ services:
       - 6432:${DB_PORT:-5432}
     networks:
       - app-network
+    volumes:
+      - db_data:/var/lib/postgresql/data
+      - ./docker/db/init:/docker-entrypoint-initdb.d # накатывания схемы db только при первом создании volume
     env_file: .env
 
   redis:
@@ -37,6 +45,9 @@ services:
       - "6379:6379"
     networks:
       - app-network
+
+volumes:
+  db_data:
 
 networks:
   app-network:
