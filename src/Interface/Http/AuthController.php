@@ -24,9 +24,11 @@ readonly class AuthController
         $token = bin2hex(random_bytes(16));
 
         $stmt = $this->pdo->prepare(
-            'INSERT INTO users (name, token, okx_api_key, okx_secret_key, okx_passphrase)
-             VALUES (:name, :token, :okx_api_key, :okx_secret_key, :okx_passphrase)'
+            'INSERT INTO users (name, token, okx_api_key, okx_secret_key, okx_passphrase, is_test_user)
+             VALUES (:name, :token, :okx_api_key, :okx_secret_key, :okx_passphrase, :is_test_user)'
         );
+
+        $isTestUser = !empty($data['is_test_user']) ? (bool)$data['is_test_user'] : false;
 
         $stmt->execute([
             'name' => $data['name'],
@@ -34,6 +36,7 @@ readonly class AuthController
             'okx_api_key' => $data['okx_api_key'],
             'okx_secret_key' => $data['okx_secret_key'],
             'okx_passphrase' => $data['okx_passphrase'],
+            'is_test_user' => $isTestUser,
         ]);
 
         return $this->responder->success($response, [
