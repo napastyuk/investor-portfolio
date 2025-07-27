@@ -1,7 +1,7 @@
 <?php
 
 // Базовая валидация переменных окружения
-$requiredEnv = ['DB_DSN', 'DB_USER', 'DB_PASS'];
+$requiredEnv = ['DB_HOST', 'DB_PORT', 'DB_DATABASE', 'DB_USERNAME', 'DB_PASSWORD'];
 $missing = array_filter($requiredEnv, fn($key) => empty($_ENV[$key]));
 
 if (!empty($missing)) {
@@ -15,8 +15,13 @@ return [
         'log_errors' => true,
     ],
     'db' => [
-        'dsn' => $_ENV['DB_DSN'],
-        'user' => $_ENV['DB_USER'],
-        'pass' => $_ENV['DB_PASS'],
+        'dsn' => sprintf(
+            'pgsql:host=%s;port=%d;dbname=%s',
+            $_ENV['DB_HOST'],
+            $_ENV['DB_PORT'],
+            $_ENV['DB_DATABASE']
+        ),
+        'user' => $_ENV['DB_USERNAME'],
+        'pass' => $_ENV['DB_PASSWORD'],
     ],
 ];
