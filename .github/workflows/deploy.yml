@@ -1,7 +1,7 @@
 name: Test and Deploy to VDS
 
 on:
-  workflow_dispatch:  # запускается вручную
+  workflow_dispatch:
 
 jobs:
   test:
@@ -27,7 +27,7 @@ jobs:
   deploy:
     name: Deploy to VDS
     runs-on: ubuntu-latest
-    needs: test  # запускать только если тесты прошли
+    needs: test  
 
     steps:
       - name: Checkout code
