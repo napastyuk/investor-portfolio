@@ -1,4 +1,4 @@
-<?php
+<?php declare(strict_types=1);
 namespace App\Interface\Http;
 
 use PDO;
@@ -10,26 +10,6 @@ readonly class AuthController
 {
     public function __construct(private PDO $pdo, private JsonResponder $responder) {}
 
-    /**
-     * @OA\Post(
-     *     path="/register",
-     *     summary="Зарегистрировать пользователя",
-     *     tags={"Auth"},
-     *     @OA\RequestBody(
-     *         required=true,
-     *         @OA\JsonContent(
-     *             required={"name", "okx_api_key", "okx_secret_key", "okx_passphrase"},
-     *             @OA\Property(property="name", type="string"),
-     *             @OA\Property(property="okx_api_key", type="string"),
-     *             @OA\Property(property="okx_secret_key", type="string"),
-     *             @OA\Property(property="okx_passphrase", type="string"),
-     *             @OA\Property(property="is_test_user", type="boolean")
-     *         )
-     *     ),
-     *     @OA\Response(response=201, description="Пользователь создан"),
-     *     @OA\Response(response=400, description="Некорректные данные")
-     * )
-     */
     public function register(ServerRequestInterface $request, ResponseInterface $response): ResponseInterface
     {
         $data = (array) $request->getParsedBody();

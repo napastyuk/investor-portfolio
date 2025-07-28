@@ -1,4 +1,4 @@
-<?php
+<?php declare(strict_types=1);
 
 namespace App\Interface\Http;
 
@@ -16,15 +16,6 @@ class BalanceController
         private BalanceRepositoryInterface $balanceRepository,
     ) {}
 
-    /**
-     * @OA\Post(
-     *     path="/balances/import",
-     *     summary="Импортировать балансы из OKX",
-     *     tags={"Balances"},
-     *     security={{"bearerAuth":{}}},
-     *     @OA\Response(response=200, description="Балансы импортированы")
-     * )
-     */
     public function import(Request $request, Response $response): Response
     {
         $user = $request->getAttribute('user');
@@ -37,15 +28,6 @@ class BalanceController
         return $response->withHeader('Content-Type', 'application/json');
     }
 
-    /**
-     * @OA\Get(
-     *     path="/balances",
-     *     summary="Получить список балансов пользователя",
-     *     tags={"Balances"},
-     *     security={{"bearerAuth":{}}},
-     *     @OA\Response(response=200, description="Список балансов")
-     * )
-     */
     public function list(Request $request, Response $response): Response
     {
         $user = $request->getAttribute('user');

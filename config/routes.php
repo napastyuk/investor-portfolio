@@ -1,4 +1,4 @@
-<?php
+<?php declare(strict_types=1);
 
 use Slim\App;
 use Slim\Routing\RouteCollectorProxy;
@@ -8,8 +8,8 @@ use App\Interface\Http\Middleware\AuthMiddleware;
 use App\Interface\Http\SwaggerController;
 
 return function (App $app) {
-    // swagger api
-    $app->get('/swagger.json', SwaggerController::class);
+    // // swagger api
+    // $app->get('/swagger.json', SwaggerController::class);
 
     // регистрация — без авторизации
     $app->post('/register', [AuthController::class, 'register']);

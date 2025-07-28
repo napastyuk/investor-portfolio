@@ -1,4 +1,4 @@
-<?php
+<?php declare(strict_types=1);
 
 // интерфейс и реализация для клиента OKX
 use App\Application\Service\OkxClientInterface;

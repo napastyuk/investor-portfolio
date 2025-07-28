@@ -1,4 +1,4 @@
-<?php
+<?php declare(strict_types=1);
 
 // Базовая валидация переменных окружения
 $requiredEnv = ['DB_HOST', 'DB_PORT', 'DB_DATABASE', 'DB_USERNAME', 'DB_PASSWORD'];
