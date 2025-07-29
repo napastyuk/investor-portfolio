@@ -30,9 +30,9 @@ readonly class AuthController
                 type: 'object',
                 properties: [
                     new OA\Property(property: 'name', type: 'string', example: 'IlyaDemo'),
-                    new OA\Property(property: 'okx_api_key', type: 'string', example: '556afa4a-3c40-4b02-8b3d-e5cfcd13a984'),
-                    new OA\Property(property: 'okx_secret_key', type: 'string', example: 'E22663CD5FCB72F5580ACF26A1654C8C'),
-                    new OA\Property(property: 'okx_passphrase', type: 'string', example: 'Xcrg3X$zwo*Yg'),
+                    new OA\Property(property: 'okx_api_key', type: 'string', example: '1234545-123234-123243-12234124-12324234'),
+                    new OA\Property(property: 'okx_secret_key', type: 'string', example: 'E22663CD5FASERAF558026A1654C8C'),
+                    new OA\Property(property: 'okx_passphrase', type: 'string', example: 'seg3X$zwDHYg'),
                     new OA\Property(property: 'is_test_user', type: 'boolean', example: true)
                 ]
             )
