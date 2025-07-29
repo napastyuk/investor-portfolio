@@ -1,3 +1,4 @@
+DROP TABLE IF EXISTS users;
 CREATE TABLE users (
 	id serial4 NOT NULL,
 	"name" varchar(255) NOT NULL,
@@ -11,6 +12,7 @@ CREATE TABLE users (
 	CONSTRAINT users_token_key UNIQUE (token)
 );
 
+DROP TABLE IF EXISTS user_balances;
 CREATE TABLE user_balances (
 	id serial4 NOT NULL,
 	user_id int4 NOT NULL,

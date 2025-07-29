@@ -1,42 +1,42 @@
 <?php declare(strict_types=1);
 
-namespace App\Test\Unit\Interface\Http;
+namespace Tests\Unit\Interface\Http;
 
-use App\Interface\Http\BalanceController;
-use App\Interface\Http\Responder\JsonResponder;
-use Nyholm\Psr7\Response;
-use Nyholm\Psr7\ServerRequest;
-use PDO;
-use PDOStatement;
-use PHPUnit\Framework\TestCase;
 use App\Application\Service\OkxClientInterface;
 use App\Domain\Repository\BalanceRepositoryInterface;
+use App\Interface\Http\BalanceController;
+use Nyholm\Psr7\Response;
+use Nyholm\Psr7\ServerRequest;
+use PHPUnit\Framework\TestCase;
+use Psr\Log\LoggerInterface;
 
 class BalanceControllerTest extends TestCase
 {
-    public function testGetBalanceSuccess()
+    public function testImportSuccess()
     {
-        $user = ['id' => 1, 'api_key' => '...', 'simulated' => false];
-
+        $user = ['id' => 1];
         $balances = [
-            ['ccy' => 'BTC', 'bal' => '0.5'],
-            ['ccy' => 'ETH', 'bal' => '2.0'],
+            ['ccy' => 'BTC', 'eq' => '0.5', 'eqUsd' => '30000'],
+            ['ccy' => 'ETH', 'eq' => '2.0', 'eqUsd' => '6000'],
         ];
 
         $okxClient = $this->createMock(OkxClientInterface::class);
         $okxClient->expects($this->once())
-            ->method('fetchBalances') 
+            ->method('fetchBalances')
             ->with($user['id'])
             ->willReturn($balances);
 
-        $balanceRepository = $this->createMock(BalanceRepositoryInterface::class);
-        $balanceRepository->expects($this->once())
-            ->method('saveBalances')
+        $balanceRepo = $this->createMock(BalanceRepositoryInterface::class);
+        $balanceRepo->expects($this->once())
+            ->method('saveBalance')
             ->with($user['id'], $balances);
 
-        $controller = new BalanceController($okxClient, $balanceRepository);
+        $logger = $this->createMock(LoggerInterface::class);
+        $logger->expects($this->once())->method('info');
 
-        $request = (new ServerRequest('POST', '/balances'))
+        $controller = new BalanceController($okxClient, $balanceRepo, $logger);
+
+        $request = (new ServerRequest('POST', '/balances/import'))
             ->withAttribute('user', $user);
 
         $response = $controller->import($request, new Response());
@@ -51,25 +51,71 @@ class BalanceControllerTest extends TestCase
         ], $body);
     }
 
+    public function testImportFailure()
+    {
+        $user = ['id' => 1];
 
-    public function testMissingUserAttributeReturnsEmpty()
+        $okxClient = $this->createMock(OkxClientInterface::class);
+        $okxClient->method('fetchBalances')->willReturn([['ccy' => 'BTC']]);
+
+        $balanceRepo = $this->createMock(BalanceRepositoryInterface::class);
+        $balanceRepo->method('saveBalance')->willThrowException(new \RuntimeException('DB failure'));
+
+        $logger = $this->createMock(LoggerInterface::class);
+        $logger->expects($this->once())->method('error');
+
+        $controller = new BalanceController($okxClient, $balanceRepo, $logger);
+
+        $request = (new ServerRequest('POST', '/balances/import'))->withAttribute('user', $user);
+        $response = $controller->import($request, new Response());
+
+        $this->assertEquals(500, $response->getStatusCode());
+        $body = json_decode((string)$response->getBody(), true);
+        $this->assertSame('error', $body['status']);
+        $this->assertStringContainsString('Failed to import balances', $body['message']);
+    }
+
+    public function testListReturnsBalances()
+    {
+        $user = ['id' => 2];
+        $balances = [
+            ['ccy' => 'BTC', 'eq' => 0.1, 'eq_usd' => 3000],
+        ];
+
+        $okxClient = $this->createMock(OkxClientInterface::class);
+        $balanceRepo = $this->createMock(BalanceRepositoryInterface::class);
+        $balanceRepo->expects($this->once())
+            ->method('getBalancesByUserId')
+            ->with($user['id'])
+            ->willReturn($balances);
+
+        $logger = $this->createMock(LoggerInterface::class);
+        $controller = new BalanceController($okxClient, $balanceRepo, $logger);
+
+        $request = (new ServerRequest('GET', '/balances'))->withAttribute('user', $user);
+        $response = $controller->list($request, new Response());
+
+        $this->assertEquals(200, $response->getStatusCode());
+        $body = json_decode((string)$response->getBody(), true);
+        $this->assertSame(['balances' => $balances], $body);
+    }
+
+    public function testListWithMissingUserReturnsEmpty()
     {
         $okxClient = $this->createMock(OkxClientInterface::class);
-        $balanceRepository = $this->createMock(BalanceRepositoryInterface::class);
-
-        $balanceRepository->expects($this->once())
+        $balanceRepo = $this->createMock(BalanceRepositoryInterface::class);
+        $balanceRepo->expects($this->once())
             ->method('getBalancesByUserId')
             ->with(0)
             ->willReturn([]);
 
-        $controller = new BalanceController($okxClient, $balanceRepository);
+        $logger = $this->createMock(LoggerInterface::class);
+        $controller = new BalanceController($okxClient, $balanceRepo, $logger);
 
         $request = new ServerRequest('GET', '/balances');
         $response = $controller->list($request, new Response());
 
         $this->assertEquals(200, $response->getStatusCode());
-        $this->assertJson((string)$response->getBody());
-
         $body = json_decode((string)$response->getBody(), true);
         $this->assertSame(['balances' => []], $body);
     }

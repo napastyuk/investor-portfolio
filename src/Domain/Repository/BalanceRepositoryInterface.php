@@ -6,11 +6,7 @@ use DateTimeImmutable;
 
 interface BalanceRepositoryInterface
 {
-    public function saveAll(int $userId, array $balances, DateTimeImmutable $createdAt): void;
+    public function saveBalance(int $userId, array $balances, ?DateTimeImmutable $createdAt = null): void;
 
-    public function getAll(int $userId): array;
-
-    public function saveBalances(int $userId, array $balances): void;
-    
     public function getBalancesByUserId(int $userId): array;
 }

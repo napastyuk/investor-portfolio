@@ -7,7 +7,8 @@ use Slim\App;
 require __DIR__ . '/../vendor/autoload.php';
 
 // подключаем .env
-$dotenv = Dotenv\Dotenv::createImmutable(__DIR__ . '/../');
+$envFile = getenv('APP_ENV') === 'test' ? '.env.test' : '.env';
+$dotenv = Dotenv\Dotenv::createImmutable(__DIR__ . '/../', $envFile);
 $dotenv->safeLoad();
 
 // создаем билдер DI контейнера
