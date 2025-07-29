@@ -148,7 +148,8 @@ return [
     // абстрагирует работу с таблицей балансов.
     AuthController::class => fn(ContainerInterface $c) => new AuthController(
         $c->get(PDO::class),
-        $c->get(JsonResponder::class)
+        $c->get(JsonResponder::class),
+        $c->get(LoggerInterface::class)
     ),
     
     //для контроллера баллансов

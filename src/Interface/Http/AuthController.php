@@ -1,4 +1,7 @@
-<?php declare(strict_types=1);
+<?php
+
+declare(strict_types=1);
+
 namespace App\Interface\Http;
 
 use PDO;
@@ -6,11 +9,15 @@ use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use App\Interface\Http\Responder\JsonResponder;
 use OpenApi\Attributes as OA;
-
+use Psr\Log\LoggerInterface;
 
 readonly class AuthController
 {
-    public function __construct(private PDO $pdo, private JsonResponder $responder) {}
+    public function __construct(
+        private PDO $pdo,
+        private JsonResponder $responder,
+        private LoggerInterface $logger
+    ) {}
 
     #[OA\Post(
         path: '/register',
@@ -45,6 +52,10 @@ readonly class AuthController
             new OA\Response(
                 response: 400,
                 description: 'Ошибка: отсутствует одно из обязательных полей'
+            ),
+            new OA\Response(
+                response: 500,
+                description: 'Ошибка сервера при регистрации пользователя'
             )
         ]
     )]
@@ -60,25 +71,35 @@ readonly class AuthController
 
         $token = bin2hex(random_bytes(16));
 
-        $stmt = $this->pdo->prepare(
-            'INSERT INTO users (name, token, okx_api_key, okx_secret_key, okx_passphrase, is_test_user)
-             VALUES (:name, :token, :okx_api_key, :okx_secret_key, :okx_passphrase, :is_test_user)'
-        );
+        try {
+            $stmt = $this->pdo->prepare(
+                'INSERT INTO users (name, token, okx_api_key, okx_secret_key, okx_passphrase, is_test_user)
+                 VALUES (:name, :token, :okx_api_key, :okx_secret_key, :okx_passphrase, :is_test_user)'
+            );
 
-        $isTestUser = !empty($data['is_test_user']) ? (bool)$data['is_test_user'] : false;
+            $isTestUser = !empty($data['is_test_user']) ? (bool)$data['is_test_user'] : false;
 
-        $stmt->execute([
-            'name' => $data['name'],
-            'token' => $token,
-            'okx_api_key' => $data['okx_api_key'],
-            'okx_secret_key' => $data['okx_secret_key'],
-            'okx_passphrase' => $data['okx_passphrase'],
-            'is_test_user' => $isTestUser,
-        ]);
+            $stmt->execute([
+                'name' => $data['name'],
+                'token' => $token,
+                'okx_api_key' => $data['okx_api_key'],
+                'okx_secret_key' => $data['okx_secret_key'],
+                'okx_passphrase' => $data['okx_passphrase'],
+                'is_test_user' => $isTestUser,
+            ]);
 
-        return $this->responder->success($response, [
-            'id' => $this->pdo->lastInsertId(),
-            'token' => $token
-        ], 201);
+            return $this->responder->success($response, [
+                'id' => $this->pdo->lastInsertId(),
+                'token' => $token
+            ], 201);
+
+        } catch (\PDOException $e) {
+            $this->logger->error('Ошибка при регистрации пользователя', [
+                'name' => $data['name'] ?? null,
+                'error' => $e->getMessage(),
+            ]);
+
+            return $this->responder->error($response, 'Ошибка при регистрации пользователя', 500);
+        }
     }
 }

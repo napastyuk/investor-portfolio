@@ -9,6 +9,7 @@ use Nyholm\Psr7\ServerRequest;
 use PHPUnit\Framework\TestCase;
 use PDO;
 use PDOStatement;
+use Psr\Log\LoggerInterface;
 
 class AuthControllerTest extends TestCase
 {
@@ -17,6 +18,7 @@ class AuthControllerTest extends TestCase
     {
         $pdo = $this->createMock(PDO::class);
         $responder = new JsonResponder();
+        $logger = $this->createMock(LoggerInterface::class); 
 
         $data = [
             'name' => 'Илья',
@@ -29,7 +31,7 @@ class AuthControllerTest extends TestCase
         $stmt->expects($this->once())->method('execute');
         $pdo->expects($this->once())->method('prepare')->willReturn($stmt);
 
-        $controller = new AuthController($pdo, $responder);
+        $controller = new AuthController($pdo, $responder, $logger);
 
         $request = (new ServerRequest('POST', '/register'))
             ->withParsedBody($data);
@@ -46,7 +48,9 @@ class AuthControllerTest extends TestCase
     {
         $pdo = $this->createMock(PDO::class);
         $responder = new JsonResponder();
-        $controller = new AuthController($pdo, $responder);
+        $logger = $this->createMock(LoggerInterface::class); // 👈 Добавлено
+
+        $controller = new AuthController($pdo, $responder, $logger); // 👈 Передан логгер
 
         $request = (new ServerRequest('POST', '/register'))
             ->withParsedBody(['name' => 'Илья']); // остальные поля отсутствуют
