@@ -42,7 +42,7 @@ jobs:
 
       - name: Apply test DB schema
         run: |
-          psql -h localhost -p 6543 -U test_user -d test_db -f ./docker/db/init/schema.sql
+          psql -h localhost -p 6543 -U test_user -d test_db -f ./docker/db/init/init.sql
         env:
           PGPASSWORD: secret
 
