@@ -9,6 +9,7 @@ use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Throwable;
 use Psr\Log\LoggerInterface;
+use OpenApi\Attributes as OA;
 
 class BalanceController
 {
@@ -17,7 +18,27 @@ class BalanceController
         private BalanceRepositoryInterface $balanceRepository,
         private LoggerInterface $logger,
     ) {}
-
+    
+    #[OA\Post(
+        path: '/balances/import',
+        summary: 'Импорт балансов с OKX API и сохранение в БД',
+        security: [['bearerAuth' => []]],
+        tags: ['Balances'],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Балансы успешно импортированы'
+            ),
+            new OA\Response(
+                response: 400,
+                description: 'Ошибка валидации или невозможность получить данные'
+            ),
+            new OA\Response(
+                response: 401,
+                description: 'Пользователь не авторизован'
+            )
+        ]
+    )]
     public function import(Request $request, Response $response): Response
     {
         $user = $request->getAttribute('user');
@@ -45,6 +66,33 @@ class BalanceController
         }
     }
 
+    #[OA\Get(
+        path: '/balances',
+        summary: 'Получить список балансов пользователя',
+        security: [['bearerAuth' => []]],
+        tags: ['Balances'],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Список балансов пользователя',
+                content: new OA\JsonContent(
+                    type: 'object',
+                    properties: [
+                        new OA\Property(property: 'balances', type: 'array', items: new OA\Items(
+                            type: 'object',
+                            properties: [
+                                new OA\Property(property: 'ccy', type: 'string', example: 'BTC'),
+                                new OA\Property(property: 'eq', type: 'string', example: '0.123'),
+                                new OA\Property(property: 'eq_usd', type: 'string', example: '3200.50'),
+                                new OA\Property(property: 'rate', type: 'string', example: '26000.00'),
+                                new OA\Property(property: 'created_at', type: 'string', format: 'date-time')
+                            ]
+                        ))
+                    ]
+                )
+            )
+        ]
+    )]
     public function list(Request $request, Response $response): Response
     {
         $user = $request->getAttribute('user');

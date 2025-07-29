@@ -9,7 +9,7 @@ use App\Interface\Http\SwaggerController;
 
 return function (App $app) {
     // // swagger api
-    // $app->get('/swagger.json', SwaggerController::class);
+    $app->get('/swagger.json', SwaggerController::class);
 
     // регистрация — без авторизации
     $app->post('/register', [AuthController::class, 'register']);
